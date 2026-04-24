@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -5,6 +6,8 @@
   --color-primary-light: #FFB6C1;
   --color-primary-dark: #FF1493;
   --color-background: #FFF0F5;
+  --font-poppins: 'Poppins', sans-serif;
+  --font-neon: 'Quicksand', sans-serif;
 }
 
 body {
