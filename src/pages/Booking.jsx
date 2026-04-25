@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getServices, bookAppointment } from '../services/api';
+import { getServices, bookAppointment, getAvailableSlots } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 export const Booking = () => {
   const { currentUser } = useAuth();
@@ -10,17 +12,36 @@ export const Booking = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [servicesLoading, setServicesLoading] = useState(true);
   const [success, setSuccess] = useState(false);
-
-  const timeSlots = ['10:00 AM', '11:00 AM', '01:00 PM', '03:00 PM', '05:00 PM'];
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
       const data = await getServices();
       setServices(data);
+      setServicesLoading(false);
     };
     fetchServices();
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (date) {
+      setSlotsLoading(true);
+      setTime(''); // Reset time when date changes
+      getAvailableSlots(date).then(slots => {
+        if (active) {
+          setAvailableSlots(slots);
+          setSlotsLoading(false);
+        }
+      });
+    } else {
+      setAvailableSlots([]);
+    }
+    return () => { active = false; };
+  }, [date]);
 
   const handleBooking = async (e) => {
     e.preventDefault();
@@ -30,12 +51,13 @@ export const Booking = () => {
     try {
       await bookAppointment({
         userId: currentUser?.uid || 'guest',
+        userName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Client',
         userEmail: currentUser?.email,
         serviceId: selectedServices.map(s => s.id).join(','),
         serviceName: selectedServices.map(s => s.name).join(' + '),
         date,
         time,
-        status: 'Confirmed'
+        status: 'Pending'
       });
       setSuccess(true);
     } catch (error) {
@@ -81,27 +103,39 @@ export const Booking = () => {
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-3 ml-1">Select Service</label>
             <div className="grid grid-cols-2 gap-3">
-              {services.map((service) => {
-                const isSelected = selectedServices.some(s => s.id === service.id);
-                return (
-                  <div
-                    key={service.id}
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedServices(selectedServices.filter(s => s.id !== service.id));
-                      } else {
-                        setSelectedServices([...selectedServices, service]);
-                      }
-                    }}
-                    className={`border-2 rounded-2xl p-3 cursor-pointer transition-all transform active:scale-95 ${isSelected
-                      ? 'border-[#FF69B4] bg-pink-50 shadow-md shadow-pink-100'
-                      : 'border-white bg-white hover:border-pink-200 shadow-sm'
-                      }`}
-                  >
-                    <p className="font-medium text-xs text-gray-800 text-center">{service.name}</p>
-                  </div>
-                );
-              })}
+              <SkeletonTheme baseColor="#f9d5e5" highlightColor="#fff0f5">
+                {servicesLoading ? (
+                  <>
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="border-2 border-white rounded-2xl p-3 bg-white shadow-sm">
+                        <Skeleton height={14} width="80%" style={{ margin: '0 auto', display: 'block' }} />
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  services.map((service) => {
+                    const isSelected = selectedServices.some(s => s.id === service.id);
+                    return (
+                      <div
+                        key={service.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedServices(selectedServices.filter(s => s.id !== service.id));
+                          } else {
+                            setSelectedServices([...selectedServices, service]);
+                          }
+                        }}
+                        className={`border-2 rounded-2xl p-3 cursor-pointer transition-all transform active:scale-95 ${isSelected
+                          ? 'border-[#FF69B4] bg-pink-50 shadow-md shadow-pink-100'
+                          : 'border-white bg-white hover:border-pink-200 shadow-sm'
+                          }`}
+                      >
+                        <p className="font-medium text-xs text-gray-800 text-center">{service.name}</p>
+                      </div>
+                    );
+                  })
+                )}
+              </SkeletonTheme>
             </div>
           </div>
 
@@ -122,25 +156,40 @@ export const Booking = () => {
           </div>
 
           {/* Time Selection */}
-          <div className="bg-white p-5 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] border-2 border-transparent hover:border-pink-50 transition-colors relative overflow-hidden group">
+          <div className={`bg-white p-5 rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] border-2 border-transparent transition-colors relative overflow-hidden group ${date ? 'hover:border-pink-50' : 'opacity-60 cursor-not-allowed'}`}>
             <div className="absolute top-0 right-0 w-16 h-16 bg-pink-50 rounded-bl-full flex items-start justify-end p-3 transform group-hover:scale-110 transition-transform">
               <Clock className="w-5 h-5 text-pink-300" />
             </div>
             <label className="block text-sm font-semibold text-gray-800 mb-3">Time Slot</label>
-            <div className="grid grid-cols-3 gap-2">
-              {timeSlots.map((t) => (
-                <div
-                  key={t}
-                  onClick={() => setTime(t)}
-                  className={`border rounded-xl py-2 px-1 text-center cursor-pointer transition-all transform active:scale-95 ${time === t
-                    ? 'bg-[#FF69B4] text-white border-transparent font-medium shadow-md shadow-pink-200'
-                    : 'bg-gray-50 border-white text-gray-600 hover:bg-pink-50 hover:border-pink-100 text-sm'
-                    }`}
-                >
-                  {t}
-                </div>
-              ))}
-            </div>
+
+            {!date ? (
+              <div className="text-center py-4 text-xs font-medium text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                Please select a date first
+              </div>
+            ) : slotsLoading ? (
+              <div className="text-center py-4 text-xs font-medium text-pink-400 animate-pulse bg-pink-50/50 rounded-xl">
+                Checking availability...
+              </div>
+            ) : availableSlots.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {availableSlots.map((t) => (
+                  <div
+                    key={t}
+                    onClick={() => setTime(t)}
+                    className={`border rounded-xl py-2 px-1 text-center cursor-pointer transition-all transform active:scale-95 ${time === t
+                      ? 'bg-[#FF69B4] text-white border-transparent font-medium shadow-md shadow-pink-200 scale-105'
+                      : 'bg-gray-50 border-white text-gray-600 hover:bg-pink-50 hover:border-pink-100 text-sm'
+                      }`}
+                  >
+                    {t}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-xs font-medium text-red-500 bg-red-50 rounded-xl border border-dashed border-red-100">
+                Fully Booked. No slots left on this date.
+              </div>
+            )}
           </div>
 
           <button

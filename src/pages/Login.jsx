@@ -1,156 +1,206 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Sparkles } from 'lucide-react';
+import { Mail, Lock, Sparkles, Phone } from 'lucide-react';
 import bgImage from '../assets/images/bg.jpeg';
 
 export const Login = () => {
+  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
   const [error, setError] = useState('');
-  const { loginWithEmail, loginWithGoogle } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const { loginWithEmail, loginWithGoogle, loginWithPhone, setupRecaptcha, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    if (loginMethod === 'phone') {
+      setupRecaptcha('recaptcha-container');
+    }
+  }, [loginMethod, setupRecaptcha]);
+
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
+    if (isResetting) {
+      if (!email) {
+        setError('Please enter your email to reset password.');
+        return;
+      }
+      try {
+        setLoading(true);
+        setError('');
+        await resetPassword(email);
+        setResetEmailSent(true);
+      } catch (err) {
+        setError('Failed to send reset email. Ensure email is correct.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
+      setLoading(true);
       setError('');
       await loginWithEmail(email, password);
       navigate('/');
     } catch (err) {
-      setError('Failed to log in. Please check credentials.');
+      setError('Failed to log in. Please check credentials or verify email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError('');
+      if (!otpSent) {
+        const recaptchaVerifier = window.recaptchaVerifier;
+        const confirmation = await loginWithPhone(phone, recaptchaVerifier);
+        setConfirmationResult(confirmation);
+        setOtpSent(true);
+      } else {
+        await confirmationResult.confirm(otp);
+        navigate('/');
+      }
+    } catch (err) {
+      setError(otpSent ? 'Incorrect OTP code.' : 'Failed to send OTP. Check phone number format (+1...).');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
+      setLoading(true);
       setError('');
       await loginWithGoogle();
       navigate('/');
     } catch (err) {
       setError('Google sign-in failed.');
+      setLoading(false);
     }
   };
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white">
-      {/* Left/Upper section - Background image with pink overlay */}
-      <div className="flex-1 lg:flex-none lg:w-1/2 relative bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center" style={{ backgroundImage: `url(${bgImage})` }}>
+      <div className="flex-1 lg:flex-none lg:w-1/2 relative bg-cover bg-center flex flex-col items-center justify-center" style={{ backgroundImage: `url(${bgImage})` }}>
         <div className="absolute inset-0 bg-pink-400/30"></div>
         <div className="relative z-10 text-center px-4">
-          {/* Welcome Back - Neon Outline Style */}
-          <h1 
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-serif italic tracking-[0.15em] text-transparent uppercase mb-2 lg:mb-4 leading-tight"
-            style={{ 
-              WebkitTextStroke: '1.5px white',
-              textShadow: '0 0 10px #ff69b4, 0 0 20px #ff69b4, 0 0 30px #ff1493'
-            }}
-          >
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-serif italic tracking-[0.15em] text-transparent uppercase mb-2 leading-tight" style={{ WebkitTextStroke: '1.5px white', textShadow: '0 0 10px #ff69b4, 0 0 20px #ff69b4, 0 0 30px #ff1493' }}>
             Welcome Back
           </h1>
-          {/* Gorgeous - Elegant Serif Style */}
           <div className="relative inline-block mt-2">
-            <h2 
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] font-serif italic text-white tracking-wide relative z-10"
-              style={{
-                textShadow: '0 2px 15px rgba(255, 20, 147, 0.8)'
-              }}
-            >
+            <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] font-serif italic text-white relative z-10" style={{ textShadow: '0 2px 15px rgba(255, 20, 147, 0.8)' }}>
               Gorgeous!
             </h2>
-            {/* Sparkle effects */}
-            <Sparkles className="absolute -top-2 -right-8 lg:-top-6 lg:-right-12 w-6 h-6 lg:w-10 lg:h-10 text-white animate-pulse z-0" style={{ filter: 'drop-shadow(0 0 10px #ff69b4)' }} />
-            <Sparkles className="absolute -bottom-2 -left-6 lg:-bottom-2 lg:-left-10 w-4 h-4 lg:w-7 lg:h-7 text-pink-200 animate-pulse z-0" style={{ filter: 'drop-shadow(0 0 8px #ff69b4)', animationDelay: '1s' }} />
+            <Sparkles className="absolute -top-2 -right-8 w-6 h-6 text-white animate-pulse z-0" style={{ filter: 'drop-shadow(0 0 10px #ff69b4)' }} />
           </div>
         </div>
       </div>
 
-      {/* Right/Lower section - Login card */}
-      <div className="shrink-0 lg:flex-1 lg:w-1/2 flex items-start lg:items-center justify-center px-4 md:px-8 bg-pink-100 -mt-10 lg:mt-0 rounded-t-[2rem] lg:rounded-none relative z-10 overflow-y-auto pt-6 md:pt-10 lg:pt-0 pb-6 md:pb-10 lg:pb-0 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] lg:shadow-[-8px_0_30px_rgba(0,0,0,0.04)] font-poppins">
-        <div className="w-full max-w-md px-4 md:px-6 relative">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-100 rounded-full blur-3xl opacity-60 -mr-10 -mt-10"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-200 rounded-full blur-3xl opacity-60 -ml-10 -mb-10"></div>
-
-          <div className="relative z-10">
-            <div className="text-center mb-4 md:mb-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full bg-pink-200 text-[var(--color-primary)] mb-3 md:mb-4">
-                <Sparkles className="w-6 h-6 md:w-8 md:h-8" />
-              </div>
-              <p className="text-gray-600 text-sm sm:text-base md:text-lg font-medium">Sign in to book your next glow up!</p>
+      <div className="shrink-0 lg:flex-1 lg:w-1/2 flex items-start lg:items-center justify-center px-4 bg-pink-100 -mt-10 lg:mt-0 rounded-t-[2rem] lg:rounded-none relative z-10 overflow-y-auto pt-6 lg:pt-0 pb-6 shadow-[0_-8px_30px_rgba(0,0,0,0.04)] font-poppins">
+        <div className="w-full max-w-md px-4 relative">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-pink-200 text-[var(--color-primary)] mb-3">
+              <Sparkles className="w-6 h-6" />
             </div>
+            <p className="text-gray-600 text-sm font-medium">Sign in to book your next glow up!</p>
+          </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-500 p-1.5 md:p-3 rounded-xl mb-2 md:mb-4 text-xs md:text-sm text-center transform transition-all duration-300">
-                {error}
-              </div>
-            )}
+          {error && <div className="bg-red-50 text-red-500 p-2 rounded-xl mb-3 text-xs text-center">{error}</div>}
+          {resetEmailSent && <div className="bg-green-50 text-green-600 p-2 rounded-xl mb-3 text-xs text-center">Password reset email sent! Please check your inbox.</div>}
 
-            <form onSubmit={handleSubmit} className="space-y-2.5 md:space-y-4">
-              <div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-2.5 md:py-3.5 bg-transparent border border-pink-300 rounded-2xl text-gray-900 text-sm md:text-base placeholder-gray-400 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                    placeholder="Email address"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-2.5 md:py-3.5 bg-transparent border border-pink-300 rounded-2xl text-gray-900 text-sm md:text-base placeholder-gray-400 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-pink-200 transition-all outline-none"
-                    placeholder="Password"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-[#E77291]   text-white rounded-xl py-2.5 md:py-3.5 font-semibold text-sm sm:text-base md:text-lg shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all transform hover:-translate-y-0.5 active:scale-95"
-              >
-                Sign In
-              </button>
-            </form>
-
-            <p className="mt-2 md:mt-4 text-center text-xs sm:text-sm md:text-base text-gray-500">
-              Don't have an account?{' '}
-              <Link to="/signup" className="font-semibold text-[var(--color-primary)] hover:underline">
-                Sign up
-              </Link>
-            </p>
-
-            <div className="mt-2 md:mt-4 flex items-center justify-between">
-              <span className="w-1/5 border-b border-gray-200"></span>
-              <span className="text-xs text-center text-gray-400 uppercase font-medium">Or</span>
-              <span className="w-1/5 border-b border-gray-200"></span>
-            </div>
-
+          <div className="flex bg-white/50 p-1 rounded-xl mb-4">
             <button
-              onClick={handleGoogleLogin}
               type="button"
-              className="mt-2 md:mt-4 w-full flex items-center justify-center gap-2 md:gap-3 bg-transparent border border-pink-300 rounded-2xl py-2.5 md:py-3.5 text-gray-700 text-sm md:text-base font-medium hover:bg-pink-100/50 hover:border-pink-400 transition-colors active:scale-95 transform"
+              onClick={() => { setLoginMethod('email'); setIsResetting(false); setError(''); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === 'email' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 relative -top-px" />
-              Sign in with Google
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod('phone'); setIsResetting(false); setError(''); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === 'phone' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Phone
             </button>
           </div>
+
+          {loginMethod === 'email' ? (
+            <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail className="h-4 w-4 text-gray-400" /></div>
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Email address" />
+              </div>
+
+              {!isResetting && (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-gray-400" /></div>
+                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Password" />
+                </div>
+              )}
+
+              <button type="submit" disabled={loading} className="w-full bg-[#E77291] text-white rounded-xl py-2.5 font-semibold text-sm shadow-md hover:bg-[#d66581] transition-all disabled:opacity-70">
+                {loading ? 'Processing...' : isResetting ? 'Send Reset Link' : 'Sign In'}
+              </button>
+
+              <div className="text-right mt-1 !mb-3">
+                <button type="button" onClick={() => { setIsResetting(!isResetting); setError(''); setResetEmailSent(false); }} className="text-xs text-pink-600 hover:underline font-medium">
+                  {isResetting ? 'Back to sign in' : 'Forgot Password?'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handlePhoneSubmit} className="space-y-3">
+              <div id="recaptcha-container" className="mb-2"></div>
+              {!otpSent ? (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Phone className="h-4 w-4 text-gray-400" /></div>
+                  <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Phone Number (e.g. +1234567890)" />
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-gray-400" /></div>
+                  <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="6-digit OTP Code" />
+                </div>
+              )}
+              <button type="submit" disabled={loading} className="w-full bg-[#E77291] text-white rounded-xl py-2.5 font-semibold text-sm shadow-md hover:bg-[#d66581] transition-all disabled:opacity-70">
+                {loading ? 'Processing...' : !otpSent ? 'Send OTP' : 'Verify & Login'}
+              </button>
+            </form>
+          )}
+
+          <p className="mt-4 text-center text-xs text-gray-500">
+            Don't have an account? <Link to="/signup" className="font-semibold text-[var(--color-primary)] hover:underline">Sign up</Link>
+          </p>
+
+          <div className="mt-4 flex items-center justify-between">
+            <span className="w-1/5 border-b border-gray-200"></span>
+            <span className="text-[10px] text-center text-gray-400 uppercase font-bold">Or</span>
+            <span className="w-1/5 border-b border-gray-200"></span>
+          </div>
+
+          <button onClick={handleGoogleLogin} disabled={loading} type="button" className="mt-4 w-full flex items-center justify-center gap-2 border border-pink-300 rounded-xl py-2.5 text-gray-700 text-sm font-medium hover:bg-pink-50 transition-colors bg-transparent disabled:opacity-70">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+            Sign in with Google
+          </button>
         </div>
       </div>
     </div>
   );
 };
+

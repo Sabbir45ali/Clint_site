@@ -1,81 +1,183 @@
-// Mock API for booking functionality
+import { auth } from "../firebase/config";
+import { API_BASE_URL } from "../config";
 
-// Services data
-const services = [
-  {
-    id: 1,
-    name: "Bridal Makeup",
-    duration: "120 mins",
-    image:
-      "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: 2,
-    name: "Hair Styling",
-    duration: "60 mins",
-    image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    name: "Facial & Skincare",
-    duration: "45 mins",
-    image:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    name: "Manicure & Pedicure",
-    duration: "90 mins",
-    image:
-      "https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=600&auto=format&fit=crop",
-  },
-];
+const getToken = async () => {
+  if (auth.currentUser) {
+    return await auth.currentUser.getIdToken(true);
+  }
+  return null;
+};
 
 export const getServices = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(services), 500); // Simulate network latency
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/services`);
+    if (!response.ok) throw new Error("Failed to fetch services");
+    const result = await response.json();
+    return result.data;
+  } catch (err) {
+    console.error("Error fetching services:", err);
+    return [];
+  }
+};
+
+export const getOffers = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/offers`);
+    if (!response.ok) throw new Error("Failed to fetch offers");
+    const result = await response.json();
+    return result.data || [];
+  } catch (err) {
+    console.error("Error fetching offers:", err);
+    return [];
+  }
+};
+
+export const getAvailableSlots = async (date) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/available-slots?date=${date}`,
+    );
+    if (!response.ok) throw new Error("Failed to fetch slots");
+    const result = await response.json();
+    return result.data || [];
+  } catch (err) {
+    console.error("Error fetching slots:", err);
+    return [];
+  }
 };
 
 export const bookAppointment = async (bookingData) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Store in localStorage
-      const existingBookings = JSON.parse(
-        localStorage.getItem("bookings") || "[]",
-      );
-      const newBooking = {
-        ...bookingData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-      existingBookings.push(newBooking);
-      localStorage.setItem("bookings", JSON.stringify(existingBookings));
-
-      // Update points
-      const points = parseInt(localStorage.getItem("loyaltyPoints") || "0", 10);
-      localStorage.setItem("loyaltyPoints", (points + 10).toString());
-
-      resolve(newBooking);
-    }, 800);
+  const token = await getToken();
+  const response = await fetch(`${API_BASE_URL}/appointments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(bookingData),
   });
+  if (!response.ok) throw new Error("Failed to book appointment");
+  const result = await response.json();
+  return result.data;
 };
 
 export const getBookings = async (userId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const allBookings = JSON.parse(localStorage.getItem("bookings") || "[]");
-      resolve(allBookings.filter((b) => b.userId === userId));
-    }, 500);
-  });
+  const token = await getToken();
+  if (!token) return [];
+  try {
+    const response = await fetch(`${API_BASE_URL}/appointments`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) return [];
+    const result = await response.json();
+    return result.data || [];
+  } catch (err) {
+    console.error("Error fetching bookings:", err);
+    return [];
+  }
+};
+
+export const updateBookingStatus = async (bookingId, status) => {
+  const token = await getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/appointments/${bookingId}/status`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ status }),
+    },
+  );
+  if (!response.ok) throw new Error("Failed to update status");
+  const result = await response.json();
+  return result.data;
+};
+
+export const rescheduleAppointment = async (bookingId, date, time) => {
+  const token = await getToken();
+  const response = await fetch(
+    `${API_BASE_URL}/appointments/${bookingId}/reschedule`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ date, time }),
+    },
+  );
+  if (!response.ok) throw new Error("Failed to request reschedule");
+  const result = await response.json();
+  return result.data;
 };
 
 export const getLoyaltyPoints = async (userId) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const points = parseInt(localStorage.getItem("loyaltyPoints") || "0", 10);
-      resolve(points);
-    }, 300);
-  });
+  const token = await getToken();
+  if (!token) return 0;
+  try {
+    const response = await fetch(`${API_BASE_URL}/loyalty`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return 0;
+    const result = await response.json();
+    return result.data?.loyaltyPoints || 0;
+  } catch (err) {
+    console.error("Error fetching loyalty:", err);
+    return 0;
+  }
+};
+
+export const getLoyaltySettings = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/loyalty-settings`);
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.data;
+  } catch (err) {
+    console.error("Error fetching loyalty settings:", err);
+    return null;
+  }
+};
+
+export const syncUser = async (displayName) => {
+  const token = await getToken();
+  if (!token) return;
+  try {
+    await fetch(`${API_BASE_URL}/sync-user`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ displayName }),
+    });
+  } catch (err) {
+    console.error("Failed to sync user:", err);
+  }
+};
+
+export const submitReview = async (appointmentId, rating, comment) => {
+  const token = await getToken();
+  if (!token) throw new Error("Unauthorized");
+
+  const response = await fetch(
+    `${API_BASE_URL}/appointments/${appointmentId}/review`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rating, comment }),
+    },
+  );
+
+  const result = await response.json();
+  if (!response.ok)
+    throw new Error(result.message || "Failed to submit review");
+  return result;
 };
