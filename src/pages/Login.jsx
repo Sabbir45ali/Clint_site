@@ -96,17 +96,18 @@ export const Login = () => {
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white">
-      <div className="flex-1 lg:flex-none lg:w-1/2 relative bg-cover bg-center flex flex-col items-center justify-center" style={{ backgroundImage: `url(${bgImage})` }}>
+      <div className="flex-1 lg:flex-none lg:w-1/2 relative bg-cover bg-center flex flex-col items-center justify-center">
+        <img src={bgImage} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover pointer-events-none" />
         <div className="absolute inset-0 bg-pink-400/30"></div>
         <div className="relative z-10 text-center px-4">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-serif italic tracking-[0.15em] text-transparent uppercase mb-2 leading-tight" style={{ WebkitTextStroke: '1.5px white', textShadow: '0 0 10px #ff69b4, 0 0 20px #ff69b4, 0 0 30px #ff1493' }}>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-serif italic tracking-[0.15em] text-transparent uppercase mb-2 leading-tight title-stroke hero-text-glow">
             Welcome Back
           </h1>
           <div className="relative inline-block mt-2">
-            <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] font-serif italic text-white relative z-10" style={{ textShadow: '0 2px 15px rgba(255, 20, 147, 0.8)' }}>
+            <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] font-serif italic text-white relative z-10 hero-text-glow">
               Gorgeous!
             </h2>
-            <Sparkles className="absolute -top-2 -right-8 w-6 h-6 text-white animate-pulse z-0" style={{ filter: 'drop-shadow(0 0 10px #ff69b4)' }} />
+            <Sparkles className="absolute -top-2 -right-8 w-6 h-6 text-white animate-pulse z-0 sparkle-glow" />
           </div>
         </div>
       </div>

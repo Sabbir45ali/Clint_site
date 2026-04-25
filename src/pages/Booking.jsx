@@ -108,7 +108,7 @@ export const Booking = () => {
                   <>
                     {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="border-2 border-white rounded-2xl p-3 bg-white shadow-sm">
-                        <Skeleton height={14} width="80%" style={{ margin: '0 auto', display: 'block' }} />
+                        <Skeleton height={14} width="80%" className="skeleton-center" />
                       </div>
                     ))}
                   </>

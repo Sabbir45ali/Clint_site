@@ -5,6 +5,7 @@ import { LogOut, Star, CalendarDays, Award, Edit2, Check, X, Camera, Phone, Info
 import { useNavigate } from 'react-router-dom';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import profileBg from '../assets/images/Profile_bg.jpg';
 
 export const Profile = () => {
   const { currentUser, logout, updateUserProfile, linkPhone, setupRecaptcha } = useAuth();
@@ -198,9 +199,11 @@ export const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] pb-24">
-      <div className="bg-gradient-to-b from-white to-[#FFF0F5] rounded-b-[40px] pt-12 pb-10 px-6 shadow-sm border-b border-pink-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-pink-100/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
+    <div className="min-h-screen bg-[var(--color-background)] bg-cover bg-center bg-fixed pb-24 relative">
+      <img src={profileBg} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#230818]/35 via-[#360c24]/25 to-[#190612]/45 pointer-events-none"></div>
+      <div className="pt-12 pb-6 px-6 relative">
+        <div className="hidden absolute top-0 right-0 w-64 h-64 bg-pink-100/50 rounded-full blur-3xl -mr-20 -mt-20"></div>
 
         <div className="relative z-10 flex flex-col items-center text-center">
           <div className="relative">
@@ -268,8 +271,8 @@ export const Profile = () => {
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold font-serif text-gray-800">{currentUser?.displayName || 'Beautiful User'}</h1>
-              <p className="text-gray-500 text-sm font-medium">{currentUser?.email || 'user@example.com'}</p>
+              <h1 className="text-2xl font-bold font-serif text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">{currentUser?.displayName || 'Beautiful User'}</h1>
+              <p className="text-pink-50 text-sm font-medium drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]">{currentUser?.email || 'user@example.com'}</p>
 
               {(currentUser?.age || currentUser?.gender) && (
                 <div className="flex gap-2 mt-2.5 mb-1 justify-center animate-in fade-in zoom-in duration-300">
@@ -339,7 +342,7 @@ export const Profile = () => {
         </div>
       </div>
 
-      <div className="px-6 -mt-6 relative z-20">
+      <div className="px-6 mt-2 relative z-20">
         {/* Loyalty Card */}
         <SkeletonTheme baseColor="#374151" highlightColor="#4b5563">
           {dataLoading ? (
@@ -348,59 +351,59 @@ export const Profile = () => {
                 <Skeleton width={120} height={16} />
                 <Skeleton width={70} height={22} borderRadius={8} />
               </div>
-              <Skeleton width={100} height={48} style={{ marginBottom: 8 }} />
+              <Skeleton width={100} height={48} className="skeleton-mb-8" />
               <Skeleton width={200} height={12} />
             </div>
           ) : (
-            <div className="bg-gradient-to-tr from-gray-900 via-gray-800 to-gray-900 rounded-[28px] p-6 shadow-xl shadow-gray-300/30 text-white mb-8 border border-gray-700 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/20 rounded-full blur-3xl opacity-50 -mr-10 -mt-10"></div>
+            <div className="bg-gradient-to-tr from-[#3a0f2d] via-[#5c1f45] to-[#7a2b59] rounded-[28px] p-6 shadow-xl shadow-pink-500/30 text-white mb-8 border border-pink-300/25 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-200/30 rounded-full blur-3xl opacity-70 -mr-10 -mt-10"></div>
 
               <div className="flex justify-between items-start mb-6 relative z-10">
                 <div>
-                  <h3 className="font-semibold text-sm flex items-center text-gray-300 mb-1">
+                  <h3 className="font-semibold text-sm flex items-center text-pink-100 mb-1">
                     <Star className="w-4 h-4 mr-1.5 text-yellow-400 fill-yellow-400" />
                     My Beauty Rewards
                   </h3>
                   <div className="flex items-baseline gap-2">
                     <p className="text-4xl font-bold tracking-tight font-serif">{points}</p>
-                    <span className="text-xs text-gray-400 font-medium">pts</span>
+                    <span className="text-xs text-pink-100/80 font-medium">pts</span>
                   </div>
                 </div>
 
-                <button onClick={() => setShowTierModal(true)} className="bg-gray-800/80 hover:bg-gray-700 border border-gray-600 rounded-full p-2 transition-colors group/btn">
-                  <Info className="w-4 h-4 text-gray-300 group-hover/btn:text-white" />
+                <button onClick={() => setShowTierModal(true)} className="bg-pink-950/30 hover:bg-pink-900/40 border border-pink-200/30 rounded-full p-2 transition-colors group/btn">
+                  <Info className="w-4 h-4 text-pink-100/90 group-hover/btn:text-white" />
                 </button>
               </div>
 
               {(() => {
                 const tierInfo = getCurrentTierInfo();
                 return (
-                  <div className="relative z-10 bg-gray-800/50 rounded-2xl p-4 border border-gray-700/50 backdrop-blur-sm">
+                  <div className="relative z-10 bg-pink-950/20 rounded-2xl p-4 border border-pink-200/20 backdrop-blur-sm">
                     <div className="flex justify-between items-end mb-2">
                       <div>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Current Tier</p>
+                        <p className="text-[10px] text-pink-100/70 font-bold uppercase tracking-wider mb-0.5">Current Tier</p>
                         <p className="text-sm font-bold bg-gradient-to-r from-yellow-200 to-yellow-500 bg-clip-text text-transparent">{tierInfo.current.name}</p>
                       </div>
                       {tierInfo.pointsToNext > 0 ? (
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-400 font-medium">Next Tier</p>
-                          <p className="text-xs font-bold text-gray-300">{tierInfo.pointsToNext} pts to <span className="text-white">{tierInfo.nextTier.name}</span></p>
+                          <p className="text-[10px] text-pink-100/70 font-medium">Next Tier</p>
+                          <p className="text-xs font-bold text-pink-50">{tierInfo.pointsToNext} pts to <span className="text-white">{tierInfo.nextTier.name}</span></p>
                         </div>
                       ) : (
                         <div className="text-right">
-                          <p className="text-[10px] text-gray-400 font-medium">Status</p>
+                          <p className="text-[10px] text-pink-100/70 font-medium">Status</p>
                           <p className="text-xs font-bold text-yellow-400">Max Tier Reached!</p>
                         </div>
                       )}
                     </div>
 
                     {/* Progress Bar Container */}
-                    <div className="h-2 w-full bg-gray-700/80 rounded-full overflow-hidden mt-3 mb-1">
+                    <div className="h-2.5 w-full bg-pink-200/20 rounded-full overflow-hidden mt-3 mb-1 ring-1 ring-pink-100/20">
                       <div
-                        className="h-full bg-gradient-to-r from-[#FF69B4] to-yellow-400 rounded-full transition-all duration-1000 ease-out relative"
+                        className="h-full bg-gradient-to-r from-fuchsia-400 via-pink-300 to-amber-300 rounded-full transition-all duration-1000 ease-out relative shadow-[0_0_16px_rgba(244,114,182,0.55)]"
                         style={{ width: `${tierInfo.progress}%` }}
                       >
-                        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent"></div>
                       </div>
                     </div>
                   </div>
@@ -445,7 +448,7 @@ export const Profile = () => {
 
         {/* Booking History */}
         <div>
-          <h2 className="text-lg font-bold text-gray-800 mb-4 font-serif flex items-center pl-1">
+          <h2 className="text-lg font-bold text-white mb-4 font-serif flex items-center pl-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
             <CalendarDays className="w-5 h-5 mr-2 text-[#FF69B4]" />
             Booking History
           </h2>
@@ -456,7 +459,7 @@ export const Profile = () => {
                 {[1, 2, 3].map(i => (
                   <div key={i} className="bg-white p-4 rounded-[20px] shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] border border-gray-100 flex items-center justify-between">
                     <div className="flex-1">
-                      <Skeleton width="60%" height={14} style={{ marginBottom: 8 }} />
+                      <Skeleton width="60%" height={14} className="skeleton-mb-8" />
                       <Skeleton width="40%" height={10} />
                     </div>
                     <Skeleton width={60} height={24} borderRadius={8} />
