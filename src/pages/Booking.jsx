@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getServices, bookAppointment, getAvailableSlots } from '../services/api';
+import { getServices, bookAppointment, getAvailableSlots, getUserProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
@@ -16,6 +16,9 @@ export const Booking = () => {
   const [success, setSuccess] = useState(false);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [userPhone, setUserPhone] = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -24,6 +27,15 @@ export const Booking = () => {
       setServicesLoading(false);
     };
     fetchServices();
+  }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const profile = await getUserProfile();
+      setUserPhone(profile?.phone || '');
+      setProfileLoading(false);
+    };
+    fetchProfile();
   }, []);
 
   useEffect(() => {
@@ -46,13 +58,23 @@ export const Booking = () => {
   const handleBooking = async (e) => {
     e.preventDefault();
     if (selectedServices.length === 0 || !date || !time) return;
+    if (!userPhone) {
+      setProfileError('Please add your phone number in Profile before booking.');
+      return;
+    }
+    if (!/^\+?[0-9]{10,15}$/.test(String(userPhone).replace(/[\s()-]/g, '').trim())) {
+      setProfileError('Phone number in Profile is invalid. Please update it.');
+      return;
+    }
 
     setLoading(true);
+    setProfileError('');
     try {
       await bookAppointment({
         userId: currentUser?.uid || 'guest',
         userName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Client',
         userEmail: currentUser?.email,
+        userPhone,
         serviceId: selectedServices.map(s => s.id).join(','),
         serviceName: selectedServices.map(s => s.name).join(' + '),
         date,
@@ -97,6 +119,24 @@ export const Booking = () => {
       </div>
 
       <div className="px-6">
+        {profileLoading ? (
+          <div className="mb-4 text-xs text-gray-600 bg-white/80 border border-pink-100 rounded-xl px-3 py-2">
+            Checking profile details...
+          </div>
+        ) : !userPhone ? (
+          <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            Add phone number in Profile page to enable booking.
+          </div>
+        ) : (
+          <div className="mb-4 text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+            Booking updates will use this phone: {userPhone}
+          </div>
+        )}
+        {profileError && (
+          <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            {profileError}
+          </div>
+        )}
         <form onSubmit={handleBooking} className="space-y-6">
 
           {/* Service Selection */}
@@ -194,7 +234,7 @@ export const Booking = () => {
 
           <button
             type="submit"
-            disabled={selectedServices.length === 0 || !date || !time || loading}
+            disabled={selectedServices.length === 0 || !date || !time || loading || profileLoading || !userPhone}
             className="w-full bg-gradient-to-r from-[#FF69B4] to-[#FF1493] text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 disabled:cursor-not-allowed mt-4 transform hover:-translate-y-0.5"
           >
             {loading ? 'Confirming...' : 'Confirm Booking'}

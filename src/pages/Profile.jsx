@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getBookings, getLoyaltyPoints, getLoyaltySettings, updateBookingStatus, rescheduleAppointment, getAvailableSlots, submitReview } from '../services/api';
+import { getBookings, getLoyaltyPoints, getLoyaltySettings, updateBookingStatus, rescheduleAppointment, getAvailableSlots, submitReview, getUserProfile, updateUserProfileData } from '../services/api';
 import { LogOut, Star, CalendarDays, Award, Edit2, Check, X, Camera, Phone, Info, ChevronRight, Clock, MessageSquareHeart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
@@ -34,11 +34,14 @@ export const Profile = () => {
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [linkError, setLinkError] = useState('');
   const [linkSuccess, setLinkSuccess] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
 
   // Edit forms state
   const [editData, setEditData] = useState({
     displayName: currentUser?.displayName || '',
     email: currentUser?.email || '',
+    phone: '',
     age: currentUser?.age || '',
     gender: currentUser?.gender || '',
     photoURL: currentUser?.photoURL || ''
@@ -51,10 +54,11 @@ export const Profile = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (currentUser) {
-        const [userBookings, userPoints, settings] = await Promise.all([
+        const [userBookings, userPoints, settings, profile] = await Promise.all([
           getBookings(currentUser.uid || 'guest'),
           getLoyaltyPoints(currentUser.uid || 'guest'),
-          getLoyaltySettings()
+          getLoyaltySettings(),
+          getUserProfile()
         ]);
 
         if (settings?.tiers?.platinum) {
@@ -68,9 +72,10 @@ export const Profile = () => {
         setEditData({
           displayName: currentUser.displayName || '',
           email: currentUser.email || '',
-          age: currentUser.age || '',
-          gender: currentUser.gender || '',
-          photoURL: currentUser.photoURL || ''
+          phone: profile?.phone || '',
+          age: profile?.age || '',
+          gender: profile?.gender || '',
+          photoURL: currentUser.photoURL || profile?.photoURL || ''
         });
         setDataLoading(false);
       }
@@ -187,12 +192,28 @@ export const Profile = () => {
   };
 
   const handleSaveProfile = async () => {
+    setProfileError('');
+    setProfileSuccess('');
+    const normalizedPhone = String(editData.phone || '').replace(/[\s()-]/g, '').trim();
+    if (!normalizedPhone) {
+      setProfileError('Phone number is required for booking.');
+      return;
+    }
+    if (!/^\+?[0-9]{10,15}$/.test(normalizedPhone)) {
+      setProfileError('Enter a valid phone number (10-15 digits, optional +).');
+      return;
+    }
+
     setSaving(true);
     try {
       await updateUserProfile(editData);
+      await updateUserProfileData({ ...editData, phone: normalizedPhone });
       setIsEditing(false);
+      setEditData((prev) => ({ ...prev, phone: normalizedPhone }));
+      setProfileSuccess('Profile saved. Phone is ready for booking.');
     } catch (err) {
       console.error("Failed to update profile", err);
+      setProfileError(err.message || 'Failed to update profile.');
     } finally {
       setSaving(false);
     }
@@ -245,6 +266,10 @@ export const Profile = () => {
                 <label className="block text-[10px] text-gray-500 text-left font-semibold uppercase tracking-wider mb-1 px-1">Email</label>
                 <input type="email" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} className="w-full text-sm px-3.5 py-2.5 bg-white/60 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-200 outline-none transition-all" />
               </div>
+              <div>
+                <label className="block text-[10px] text-gray-500 text-left font-semibold uppercase tracking-wider mb-1 px-1">Phone (Required for booking)</label>
+                <input type="tel" required value={editData.phone} onChange={e => setEditData({ ...editData, phone: e.target.value })} placeholder="+911234567890" className="w-full text-sm px-3.5 py-2.5 bg-white/60 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-200 outline-none transition-all" />
+              </div>
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="block text-[10px] text-gray-500 text-left font-semibold uppercase tracking-wider mb-1 px-1">Age</label>
@@ -268,11 +293,14 @@ export const Profile = () => {
                   {saving ? 'Saving...' : <><Check className="w-4 h-4 mr-1" /> Save</>}
                 </button>
               </div>
+              {profileError && <p className="text-xs text-red-500 font-medium">{profileError}</p>}
+              {profileSuccess && <p className="text-xs text-green-600 font-medium">{profileSuccess}</p>}
             </div>
           ) : (
             <>
               <h1 className="text-2xl font-bold font-serif text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">{currentUser?.displayName || 'Beautiful User'}</h1>
               <p className="text-pink-50 text-sm font-medium drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]">{currentUser?.email || 'user@example.com'}</p>
+              {!!editData.phone && <p className="text-white/90 text-xs font-medium mt-1 drop-shadow-[0_1px_6px_rgba(0,0,0,0.35)]">{editData.phone}</p>}
 
               {(currentUser?.age || currentUser?.gender) && (
                 <div className="flex gap-2 mt-2.5 mb-1 justify-center animate-in fade-in zoom-in duration-300">

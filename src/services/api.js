@@ -147,17 +147,53 @@ export const syncUser = async (displayName) => {
   const token = await getToken();
   if (!token) return;
   try {
+    const payload =
+      typeof displayName === "object" && displayName !== null
+        ? displayName
+        : { displayName };
     await fetch(`${API_BASE_URL}/sync-user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ displayName }),
+      body: JSON.stringify(payload),
     });
   } catch (err) {
     console.error("Failed to sync user:", err);
   }
+};
+
+export const getUserProfile = async () => {
+  const token = await getToken();
+  if (!token) return null;
+  try {
+    const response = await fetch(`${API_BASE_URL}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.data || null;
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    return null;
+  }
+};
+
+export const updateUserProfileData = async (profileData) => {
+  const token = await getToken();
+  if (!token) throw new Error("Unauthorized");
+  const response = await fetch(`${API_BASE_URL}/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(profileData),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Failed to update profile");
+  return result;
 };
 
 export const submitReview = async (appointmentId, rating, comment) => {
