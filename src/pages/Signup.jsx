@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Sparkles, Phone } from 'lucide-react';
@@ -12,8 +12,15 @@ export const Signup = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signupWithEmail, loginWithGoogle } = useAuth();
+  const { currentUser, signupWithEmail, loginWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,10 +28,11 @@ export const Signup = () => {
       setError('');
       setSuccessMsg('');
       setLoading(true);
-      await signupWithEmail(email, password, name);
-      setSuccessMsg('Account created successfully! We have sent a verification link to your email. Please check your Spam or Junk folder before continuing.');
-      // Keep them here until they go to login manually or use a timer.
-      setTimeout(() => navigate('/login'), 5000);
+      await signupWithEmail(email, password, name, phone);
+      // Sign out so the user goes through login explicitly
+      await logout();
+      setSuccessMsg('Account created! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
       setError('Failed to create an account. Email might already be in use.');
     } finally {
@@ -80,13 +88,14 @@ export const Signup = () => {
             </div>
 
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Phone className="h-4 w-4 text-gray-400" /></div>
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Phone Number (Optional)" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail className="h-4 w-4 text-gray-400" /></div>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Email address" />
             </div>
 
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail className="h-4 w-4 text-gray-400" /></div>
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Email address" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Phone className="h-4 w-4 text-gray-400" /></div>
+              <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Phone Number (e.g. +911234567890)" />
+              <p className="text-[10px] text-gray-400 mt-0.5 ml-1 font-medium">Required for booking appointments</p>
             </div>
 
             <div className="relative">

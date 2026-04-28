@@ -217,3 +217,21 @@ export const submitReview = async (appointmentId, rating, comment) => {
     throw new Error(result.message || "Failed to submit review");
   return result;
 };
+
+export const saveFcmToken = async (fcmToken) => {
+  const token = await getToken();
+  if (!token) return;
+  try {
+    await fetch(`${API_BASE_URL}/fcm-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ fcmToken }),
+    });
+  } catch (err) {
+    console.error("Failed to save FCM token:", err);
+  }
+};
+

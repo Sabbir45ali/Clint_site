@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, googleProvider } from '../firebase/config';
+import { auth, googleProvider, messaging, getToken } from '../firebase/config';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -9,12 +9,9 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   updateEmail,
-  updateProfile,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  linkWithPhoneNumber
+  updateProfile
 } from 'firebase/auth';
-import { syncUser } from '../services/api';
+import { syncUser, saveFcmToken } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -25,9 +22,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       setLoading(false);
+
+      if (user && messaging) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            const token = await getToken(messaging, {
+              vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
+            });
+            if (token) {
+              await saveFcmToken(token);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to get FCM token:', error);
+        }
+      }
     });
     return unsubscribe;
   }, []);
@@ -36,11 +49,11 @@ export const AuthProvider = ({ children }) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signupWithEmail = async (email, password, name) => {
+  const signupWithEmail = async (email, password, name, phone) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
     await sendEmailVerification(userCredential.user);
-    await syncUser(name);
+    await syncUser({ displayName: name, phone: phone || '' });
     await userCredential.user.reload();
     setCurrentUser(auth.currentUser);
     return userCredential.user;
@@ -50,15 +63,6 @@ export const AuthProvider = ({ children }) => {
     const credential = await signInWithPopup(auth, googleProvider);
     await syncUser(credential.user.displayName);
     return credential;
-  };
-
-  const loginWithPhone = (phoneNumber, appVerifier) => {
-    return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-  };
-
-  const linkPhone = (phoneNumber, appVerifier) => {
-    if (!auth.currentUser) throw new Error("No user logged in to link phone");
-    return linkWithPhoneNumber(auth.currentUser, phoneNumber, appVerifier);
   };
 
   const resetPassword = (email) => {
@@ -85,15 +89,6 @@ export const AuthProvider = ({ children }) => {
     return auth.currentUser;
   };
 
-  const setupRecaptcha = (containerId) => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-        size: 'invisible'
-      });
-    }
-    return window.recaptchaVerifier;
-  };
-
   const logout = () => {
     return signOut(auth);
   };
@@ -112,10 +107,7 @@ export const AuthProvider = ({ children }) => {
     signupWithEmail,
     updateUserProfile,
     loginWithGoogle,
-    loginWithPhone,
-    linkPhone,
     resetPassword,
-    setupRecaptcha,
     logout
   };
 

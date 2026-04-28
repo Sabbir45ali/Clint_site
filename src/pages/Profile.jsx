@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getBookings, getLoyaltyPoints, getLoyaltySettings, updateBookingStatus, rescheduleAppointment, getAvailableSlots, submitReview, getUserProfile, updateUserProfileData } from '../services/api';
-import { LogOut, Star, CalendarDays, Award, Edit2, Check, X, Camera, Phone, Info, ChevronRight, Clock, MessageSquareHeart } from 'lucide-react';
+import { LogOut, Star, CalendarDays, Award, Edit2, Check, X, Camera, Phone, Info, ChevronRight, Clock, MessageSquareHeart, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import profileBg from '../assets/images/Profile_bg.jpg';
 
+const CLOUDINARY_CLOUD_NAME = 'dcijnx34r';
+const CLOUDINARY_UPLOAD_PRESET = 'beauty_parlour';
+
+const uploadToCloudinary = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Image upload failed');
+  const data = await res.json();
+  return data.secure_url;
+};
+
 export const Profile = () => {
-  const { currentUser, logout, updateUserProfile, linkPhone, setupRecaptcha } = useAuth();
+  const { currentUser, logout, updateUserProfile } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [points, setPoints] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
@@ -171,13 +187,16 @@ export const Profile = () => {
     setSaving(false);
   };
 
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
+      // Create a local preview only (not stored as photoURL)
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditData({ ...editData, photoURL: reader.result });
-      };
+      reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
@@ -206,11 +225,21 @@ export const Profile = () => {
 
     setSaving(true);
     try {
-      await updateUserProfile(editData);
-      await updateUserProfileData({ ...editData, phone: normalizedPhone });
+      let finalData = { ...editData, phone: normalizedPhone };
+
+      // Upload image to Cloudinary if a new file was selected
+      if (imageFile) {
+        const uploadedUrl = await uploadToCloudinary(imageFile);
+        finalData.photoURL = uploadedUrl;
+        setEditData((prev) => ({ ...prev, photoURL: uploadedUrl }));
+      }
+
+      await updateUserProfile(finalData);
+      await updateUserProfileData(finalData);
       setIsEditing(false);
-      setEditData((prev) => ({ ...prev, phone: normalizedPhone }));
-      setProfileSuccess('Profile saved. Phone is ready for booking.');
+      setImageFile(null);
+      setImagePreview('');
+      setProfileSuccess('Profile saved successfully!');
     } catch (err) {
       console.error("Failed to update profile", err);
       setProfileError(err.message || 'Failed to update profile.');
@@ -256,7 +285,7 @@ export const Profile = () => {
                   </div>
                   <input type="file" accept="image/*" onChange={handleImageChange} className="w-full text-xs pl-8 pr-3 py-2 bg-white/60 border border-pink-100 rounded-xl focus:ring-2 focus:ring-pink-200 outline-none transition-all file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100 cursor-pointer" />
                 </div>
-                {editData.photoURL && <div className="mt-2 ml-1 text-xs text-green-600 font-semibold">Image primed & ready!</div>}
+                {imagePreview && <div className="mt-2 ml-1 text-xs text-green-600 font-semibold">Image primed & ready!</div>}
               </div>
               <div>
                 <label className="block text-[10px] text-gray-500 text-left font-semibold uppercase tracking-wider mb-1 px-1">Full Name</label>

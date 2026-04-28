@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { getServices, bookAppointment, getAvailableSlots, getUserProfile } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar as CalendarIcon, Clock, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calendar as CalendarIcon, Clock, CheckCircle2, Phone, ArrowRight, Mail } from 'lucide-react';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 export const Booking = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [date, setDate] = useState('');
@@ -88,6 +90,40 @@ export const Booking = () => {
     setLoading(false);
   };
 
+  /* ── Phone-number missing banner ── */
+  const PhoneMissingBanner = () => (
+    <div className="mb-6 bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 border-2 border-dashed border-amber-200 rounded-3xl p-5 text-center relative overflow-hidden">
+      {/* Decorative circles */}
+      <div className="absolute -top-4 -right-4 w-20 h-20 bg-amber-100/60 rounded-full blur-2xl"></div>
+      <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-pink-100/60 rounded-full blur-2xl"></div>
+
+      <div className="relative z-10">
+        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-100 border border-amber-100">
+          <Phone className="w-6 h-6 text-amber-500 animate-bounce" />
+        </div>
+        <h3 className="font-bold text-gray-800 text-sm mb-1">Phone Number Required</h3>
+        <p className="text-xs text-gray-500 leading-relaxed max-w-[260px] mx-auto mb-4">
+          We need your phone number to confirm bookings and send appointment updates. Add it in your profile to get started!
+        </p>
+        <button
+          onClick={() => navigate('/profile')}
+          className="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FF69B4] to-[#FF1493] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all active:scale-95 hover:-translate-y-0.5"
+        >
+          Go to Profile
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ── Phone present banner ── */
+  const PhonePresentBanner = () => (
+    <div className="mb-4 flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+      <Mail className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+      <span>Booking updates will be sent to <strong>{currentUser?.email}</strong></span>
+    </div>
+  );
+
   if (success) {
     return (
       <div className="min-h-screen bg-[var(--color-background)] flex flex-col items-center justify-center p-6 text-center">
@@ -124,13 +160,9 @@ export const Booking = () => {
             Checking profile details...
           </div>
         ) : !userPhone ? (
-          <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-            Add phone number in Profile page to enable booking.
-          </div>
+          <PhoneMissingBanner />
         ) : (
-          <div className="mb-4 text-xs text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2">
-            Booking updates will use this phone: {userPhone}
-          </div>
+          <PhonePresentBanner />
         )}
         {profileError && (
           <div className="mb-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">

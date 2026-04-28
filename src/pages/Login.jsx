@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Sparkles, Phone } from 'lucide-react';
+import { Mail, Lock, Sparkles } from 'lucide-react';
 import bgImage from '../assets/images/bg.jpeg';
 
 export const Login = () => {
-  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
 
   const [isResetting, setIsResetting] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -20,14 +14,15 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { loginWithEmail, loginWithGoogle, loginWithPhone, setupRecaptcha, resetPassword } = useAuth();
+  const { currentUser, loginWithEmail, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
 
+  // Auto-redirect if already logged in (token-based auto-login)
   useEffect(() => {
-    if (loginMethod === 'phone') {
-      setupRecaptcha('recaptcha-container');
+    if (currentUser) {
+      navigate('/', { replace: true });
     }
-  }, [loginMethod, setupRecaptcha]);
+  }, [currentUser, navigate]);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -56,27 +51,6 @@ export const Login = () => {
       navigate('/');
     } catch (err) {
       setError('Failed to log in. Please check credentials or verify email.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      setError('');
-      if (!otpSent) {
-        const recaptchaVerifier = window.recaptchaVerifier;
-        const confirmation = await loginWithPhone(phone, recaptchaVerifier);
-        setConfirmationResult(confirmation);
-        setOtpSent(true);
-      } else {
-        await confirmationResult.confirm(otp);
-        navigate('/');
-      }
-    } catch (err) {
-      setError(otpSent ? 'Incorrect OTP code.' : 'Failed to send OTP. Check phone number format (+1...).');
     } finally {
       setLoading(false);
     }
@@ -124,66 +98,29 @@ export const Login = () => {
           {error && <div className="bg-red-50 text-red-500 p-2 rounded-xl mb-3 text-xs text-center">{error}</div>}
           {resetEmailSent && <div className="bg-green-50 text-green-600 p-2 rounded-xl mb-3 text-xs text-center">Password reset email sent! Please check your inbox.</div>}
 
-          <div className="flex bg-white/50 p-1 rounded-xl mb-4">
-            <button
-              type="button"
-              onClick={() => { setLoginMethod('email'); setIsResetting(false); setError(''); }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === 'email' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Email
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLoginMethod('phone'); setIsResetting(false); setError(''); }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${loginMethod === 'phone' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Phone
-            </button>
-          </div>
+          <form onSubmit={handleEmailSubmit} className="space-y-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail className="h-4 w-4 text-gray-400" /></div>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Email address" />
+            </div>
 
-          {loginMethod === 'email' ? (
-            <form onSubmit={handleEmailSubmit} className="space-y-3">
+            {!isResetting && (
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Mail className="h-4 w-4 text-gray-400" /></div>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Email address" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-gray-400" /></div>
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Password" />
               </div>
+            )}
 
-              {!isResetting && (
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-gray-400" /></div>
-                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Password" />
-                </div>
-              )}
+            <button type="submit" disabled={loading} className="w-full bg-[#E77291] text-white rounded-xl py-2.5 font-semibold text-sm shadow-md hover:bg-[#d66581] transition-all disabled:opacity-70">
+              {loading ? 'Processing...' : isResetting ? 'Send Reset Link' : 'Sign In'}
+            </button>
 
-              <button type="submit" disabled={loading} className="w-full bg-[#E77291] text-white rounded-xl py-2.5 font-semibold text-sm shadow-md hover:bg-[#d66581] transition-all disabled:opacity-70">
-                {loading ? 'Processing...' : isResetting ? 'Send Reset Link' : 'Sign In'}
+            <div className="text-right mt-1 !mb-3">
+              <button type="button" onClick={() => { setIsResetting(!isResetting); setError(''); setResetEmailSent(false); }} className="text-xs text-pink-600 hover:underline font-medium">
+                {isResetting ? 'Back to sign in' : 'Forgot Password?'}
               </button>
-
-              <div className="text-right mt-1 !mb-3">
-                <button type="button" onClick={() => { setIsResetting(!isResetting); setError(''); setResetEmailSent(false); }} className="text-xs text-pink-600 hover:underline font-medium">
-                  {isResetting ? 'Back to sign in' : 'Forgot Password?'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handlePhoneSubmit} className="space-y-3">
-              <div id="recaptcha-container" className="mb-2"></div>
-              {!otpSent ? (
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Phone className="h-4 w-4 text-gray-400" /></div>
-                  <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="Phone Number (e.g. +1234567890)" />
-                </div>
-              ) : (
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Lock className="h-4 w-4 text-gray-400" /></div>
-                  <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value)} className="block w-full pl-10 pr-4 py-2.5 bg-white border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-300 outline-none text-sm" placeholder="6-digit OTP Code" />
-                </div>
-              )}
-              <button type="submit" disabled={loading} className="w-full bg-[#E77291] text-white rounded-xl py-2.5 font-semibold text-sm shadow-md hover:bg-[#d66581] transition-all disabled:opacity-70">
-                {loading ? 'Processing...' : !otpSent ? 'Send OTP' : 'Verify & Login'}
-              </button>
-            </form>
-          )}
+            </div>
+          </form>
 
           <p className="mt-4 text-center text-xs text-gray-500">
             Don't have an account? <Link to="/signup" className="font-semibold text-[var(--color-primary)] hover:underline">Sign up</Link>
@@ -204,4 +141,3 @@ export const Login = () => {
     </div>
   );
 };
-
