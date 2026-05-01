@@ -123,6 +123,7 @@ export const Home = () => {
                       <div className="flex items-center mt-1 gap-1">
                         <Clock className="w-2.5 h-2.5 text-pink-200" />
                         <span className="text-pink-100 text-[10px] font-medium">{service.duration}</span>
+                        {service.price && <span className="text-white text-[10px] font-bold ml-1 bg-black/30 px-1 rounded">₹{service.price}</span>}
                       </div>
                     </div>
 

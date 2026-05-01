@@ -79,6 +79,7 @@ export const Booking = () => {
         userPhone,
         serviceId: selectedServices.map(s => s.id).join(','),
         serviceName: selectedServices.map(s => s.name).join(' + '),
+        servicePrice: selectedServices.map(s => s.price).join(' + '),
         date,
         time,
         status: 'Pending'
@@ -203,6 +204,7 @@ export const Booking = () => {
                           }`}
                       >
                         <p className="font-medium text-xs text-gray-800 text-center">{service.name}</p>
+                        {service.price && <p className="text-[10px] text-[#FF69B4] font-semibold text-center mt-1">₹{service.price}</p>}
                       </div>
                     );
                   })

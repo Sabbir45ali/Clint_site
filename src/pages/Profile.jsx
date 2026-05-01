@@ -536,7 +536,10 @@ export const Profile = () => {
                 {bookings.map((booking) => (
                   <div key={booking.id} className="bg-white p-4 rounded-[20px] shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] border border-gray-100 items-center justify-between hover:border-pink-100 transition-colors group flex flex-col md:flex-row gap-3">
                     <div className="flex-1 w-full relative">
-                      <h4 className="font-semibold text-gray-800 text-[13px] mb-1.5">{booking.serviceName}</h4>
+                      <div className="flex justify-between items-start mb-1.5">
+                        <h4 className="font-semibold text-gray-800 text-[13px]">{booking.serviceName}</h4>
+                        {booking.servicePrice && <span className="font-bold text-[#FF69B4] text-xs">₹{booking.servicePrice}</span>}
+                      </div>
                       <p className="text-[11px] text-gray-500 flex items-center mb-1">
                         <span className="font-semibold text-[#FF69B4] bg-pink-50 px-2 py-0.5 rounded-md mr-2">{booking.date}</span>
                         <span className="font-medium">{booking.time}</span>
