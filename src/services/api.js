@@ -32,6 +32,18 @@ export const getOffers = async () => {
   }
 };
 
+export const getLookbook = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/lookbook`);
+    if (!response.ok) throw new Error("Failed to fetch lookbook");
+    const result = await response.json();
+    return result.data || [];
+  } catch (err) {
+    console.error("Error fetching lookbook:", err);
+    return [];
+  }
+};
+
 export const getAvailableSlots = async (date) => {
   try {
     const response = await fetch(

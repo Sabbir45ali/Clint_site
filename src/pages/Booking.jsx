@@ -203,8 +203,11 @@ export const Booking = () => {
                           : 'border-white bg-white hover:border-pink-200 shadow-sm'
                           }`}
                       >
-                        <p className="font-medium text-xs text-gray-800 text-center">{service.name}</p>
-                        {service.price && <p className="text-[10px] text-[#FF69B4] font-semibold text-center mt-1">₹{service.price}</p>}
+                        <div className="flex flex-col items-center">
+                          {service.isPackage && <span className="mb-1 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-100 text-purple-600 uppercase tracking-wider">Combo</span>}
+                          <p className="font-medium text-xs text-gray-800 text-center">{service.name}</p>
+                          {service.price && <p className="text-[10px] text-[#FF69B4] font-semibold text-center mt-1">₹{service.price}</p>}
+                        </div>
                       </div>
                     );
                   })

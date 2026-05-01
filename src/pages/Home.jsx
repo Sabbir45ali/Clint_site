@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getServices, getOffers } from '../services/api';
-import { Clock } from 'lucide-react';
+import { getServices, getOffers, getLookbook } from '../services/api';
+import { Clock, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import bgImage from '../assets/images/bg2.jpg';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
@@ -9,19 +9,31 @@ import 'react-loading-skeleton/dist/skeleton.css';
 export const Home = () => {
   const [services, setServices] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [lookbooks, setLookbooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizStep, setQuizStep] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
-      const [servicesData, offersData] = await Promise.all([
-        getServices(),
-        getOffers()
-      ]);
-      setServices(servicesData);
-      setOffers(offersData);
+      setLoading(true);
+      try {
+        const [servicesData, offersData, lookbookData] = await Promise.all([
+          getServices(),
+          getOffers(),
+          getLookbook()
+        ]);
+        setServices(servicesData);
+        setOffers(offersData);
+        setLookbooks(lookbookData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
       setLoading(false);
     };
+
     fetchData();
   }, []);
 
@@ -33,8 +45,8 @@ export const Home = () => {
       <div className="bg-transparent rounded-b-[40px] pt-6 pb-8 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-pink-50 rounded-full blur-3xl opacity-60 -mr-10 -mt-10"></div>
         <div className="relative z-10">
-          <div className="flex flex-col mb-8 mt-2">
-            <h1 className="text-5xl md:text-6xl text-white leading-[0.8] tracking-widest font-normal display-playfair hero-text-glow">
+          <div className="flex flex-col mb-8 text-center sm:text-left drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+            <h1 className="text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-br from-pink-200 via-white to-pink-100 tracking-tighter leading-[0.8] mb-0 display-playfair hero-text-glow">
               RUK'S
             </h1>
             <h2 className="text-5xl md:text-6xl text-white leading-[0.8] tracking-wide mt-1 font-normal display-playfair hero-text-glow">
@@ -43,6 +55,9 @@ export const Home = () => {
             <p className="text-2xl md:text-3xl text-pink-50 mt-3 self-end pr-4 md:pr-8 script-great-vibes hero-script-glow">
               "Glow from head to toe"
             </p>
+            <button onClick={() => setShowQuiz(true)} className="mt-6 mx-auto sm:mx-0 w-max bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white font-bold py-2.5 px-6 rounded-full flex items-center shadow-lg transition-all active:scale-95 group">
+              <span className="mr-2">✨</span> Take the Beauty Quiz <span className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+            </button>
           </div>
 
           {/* Offers Section */}
@@ -80,11 +95,43 @@ export const Home = () => {
         </div>
       </div>
 
-      {/* Services Section */}
+      {/* Before & After Lookbook */}
+      {lookbooks.length > 0 && (
+        <div className="mt-8 mb-4 px-5">
+          <h3 className="text-xl font-bold text-white mb-4 flex items-center font-serif soft-pink-shadow">
+            <span className="bg-white/20 text-white p-1.5 rounded-lg mr-2 backdrop-blur-sm">📸</span>
+            Real Results Lookbook
+          </h3>
+          <div className="flex overflow-x-auto pb-4 gap-4 snap-x hide-scrollbar">
+            {lookbooks.map((item) => (
+              <div key={item.id} className="min-w-[280px] snap-center bg-white/10 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 overflow-hidden">
+                <div className="flex h-36">
+                  <div className="w-1/2 bg-gray-200 relative">
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium text-xs">Before</div>
+                    <div className="absolute top-2 left-2 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-sm z-10">Before</div>
+                    {item.beforeImage && <img src={item.beforeImage} alt="Before" className="w-full h-full object-cover relative z-0" />}
+                  </div>
+                  <div className="w-1/2 bg-gradient-to-br from-[#FF69B4] to-[#FF1493] relative border-l-2 border-white/30">
+                    <div className="absolute inset-0 flex items-center justify-center text-white/90 font-medium text-xs">After ✨</div>
+                    <div className="absolute top-2 right-2 bg-white text-[#FF1493] font-bold text-[9px] px-1.5 py-0.5 rounded shadow-sm z-10">After</div>
+                    {item.afterImage && <img src={item.afterImage} alt="After" className="w-full h-full object-cover relative z-0" />}
+                  </div>
+                </div>
+                <div className="p-3">
+                  <p className="font-bold text-sm text-white">{item.title}</p>
+                  <p className="text-xs text-pink-100">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="px-5 pb-6 mt-2 relative">
-        <div className="flex justify-between items-center mb-5">
+        {/* Services Section */}
+        <div className="flex justify-between items-center mb-5 mt-6">
           <h2 className="text-xl font-bold text-white font-serif soft-pink-shadow">Our Services</h2>
-          <span className="text-white/60 text-xs tracking-widest uppercase">Explore</span>
+          <button onClick={() => navigate('/book')} className="text-white/80 text-xs tracking-widest uppercase hover:text-white transition-colors">See All →</button>
         </div>
 
         <SkeletonTheme baseColor="#f9d5e5" highlightColor="#fff0f5">
@@ -119,6 +166,7 @@ export const Home = () => {
                     <div className="absolute top-0 left-0 right-0 z-20 p-3 bg-gradient-to-b from-black/60 via-black/30 to-transparent">
                       <h3 className="text-white font-semibold text-[12px] leading-tight drop-shadow-md">
                         {service.name}
+                        {service.isPackage && <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-500/80 text-white uppercase tracking-wider align-middle">Combo</span>}
                       </h3>
                       <div className="flex items-center mt-1 gap-1">
                         <Clock className="w-2.5 h-2.5 text-pink-200" />
@@ -147,6 +195,73 @@ export const Home = () => {
           )}
         </SkeletonTheme>
       </div>
+
+      {/* Smart Beauty Quiz Modal */}
+      {showQuiz && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setShowQuiz(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-[#FF69B4] to-[#FF1493] p-6 text-white relative">
+              <button onClick={() => setShowQuiz(false)} className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              <h3 className="text-xl font-bold mb-1">✨ Beauty Match</h3>
+              <p className="text-sm text-pink-100">Find your perfect glow-up service</p>
+            </div>
+            
+            <div className="p-6">
+              {quizStep === 0 && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <h4 className="font-bold text-gray-800 mb-4 text-lg">What's your primary skin/hair goal today?</h4>
+                  <div className="space-y-3">
+                    {['Glowing Skin', 'Relaxation & Detox', 'Hair Transformation', 'Special Event Ready'].map(option => (
+                      <button 
+                        key={option}
+                        onClick={() => { setQuizAnswers({...quizAnswers, goal: option}); setQuizStep(1); }}
+                        className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-[#FF69B4] hover:bg-pink-50 transition-all font-medium text-gray-700"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 1 && (
+                <div className="animate-in slide-in-from-right-4 duration-300">
+                  <h4 className="font-bold text-gray-800 mb-4 text-lg">How much time do you have?</h4>
+                  <div className="space-y-3">
+                    {['Quick fix (Under 30 mins)', 'A bit of pampering (1 hr)', 'Take all day! (2+ hrs)'].map(option => (
+                      <button 
+                        key={option}
+                        onClick={() => { setQuizAnswers({...quizAnswers, time: option}); setQuizStep(2); }}
+                        className="w-full text-left p-4 rounded-xl border-2 border-gray-100 hover:border-[#FF69B4] hover:bg-pink-50 transition-all font-medium text-gray-700"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 2 && (
+                <div className="animate-in zoom-in-95 duration-500 text-center py-4">
+                  <div className="w-16 h-16 bg-pink-100 text-[#FF69B4] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                    ✨
+                  </div>
+                  <h4 className="font-bold text-gray-800 mb-2 text-xl">We found your match!</h4>
+                  <p className="text-sm text-gray-500 mb-6">Based on your answers, we recommend checking out our Combos and specialized treatments.</p>
+                  <button 
+                    onClick={() => navigate('/book')}
+                    className="w-full py-3 rounded-full font-bold bg-gradient-to-r from-[#FF69B4] to-[#FF1493] text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
